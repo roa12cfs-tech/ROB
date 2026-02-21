@@ -1,206 +1,202 @@
-import { nursingHomes, type CareType } from "@/src/data/nursingHomes";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { NursingHomeCard } from "@/components/NursingHomeCard";
+import type { CareType } from "@/src/data/nursingHomes";
+import { nursingHomes } from "@/src/data/nursingHomes";
 
 const careTypeLabels: Record<CareType, string> = {
-  stationaer: "Stationaer",
+  stationaer: "Stationäre Pflege",
   kurzzeit: "Kurzzeitpflege",
-  demenz: "Demenzbetreuung",
+  demenz: "Demenzpflege",
   "betreutes-wohnen": "Betreutes Wohnen",
 };
 
-function SearchIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-    </svg>
-  );
-}
-
 type SearchParams = {
   q?: string;
-  care?: string;
-  available?: string;
+  care?: CareType;
+  onlyAvailable?: string;
   maxPrice?: string;
   minRating?: string;
 };
 
-export default async function SuchePage({
-  searchParams,
+function parsePrice(value?: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 3;
+  return Math.min(3, Math.max(1, Math.round(parsed))) as 1 | 2 | 3;
+}
+
+function parseRating(value?: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return [0, 3.5, 4.0, 4.5].includes(parsed) ? parsed : 0;
+}
+
+function getActiveFilters({
+  q,
+  care,
+  onlyAvailable,
+  maxPrice,
+  minRating,
 }: {
-  searchParams: Promise<SearchParams>;
+  q: string;
+  care: "" | CareType;
+  onlyAvailable: string;
+  maxPrice: string;
+  minRating: string;
 }) {
+  const filters: string[] = [];
+  if (q) filters.push(`Ort: ${q}`);
+  if (care) filters.push(careTypeLabels[care]);
+  if (onlyAvailable === "on") filters.push("Nur freie Plätze");
+  if (maxPrice !== "3") filters.push(`Max. Preis: ${"€".repeat(Number(maxPrice))}`);
+  if (minRating !== "0") filters.push(`Ab ${Number(minRating).toFixed(1)} ★`);
+  return filters;
+}
+
+export default async function SearchPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
-
-  const q = params.q?.toLowerCase().trim() ?? "";
+  const q = params.q?.trim() ?? "";
   const care = params.care ?? "";
-  const availableOnly = params.available === "1";
-  const maxPrice = params.maxPrice ? Number(params.maxPrice) : 3;
-  const minRating = params.minRating ? Number(params.minRating) : 0;
+  const onlyAvailable = params.onlyAvailable ?? "";
+  const maxPrice = String(parsePrice(params.maxPrice));
+  const minRating = String(parseRating(params.minRating));
 
-  // Filter
-  let results = nursingHomes.filter((home) => {
-    if (q && !home.name.toLowerCase().includes(q) && !home.city.toLowerCase().includes(q) && !home.postalCode.includes(q)) {
-      return false;
-    }
-    if (care && !home.careTypes.includes(care as CareType)) {
-      return false;
-    }
-    if (availableOnly && home.availableSlots === 0) {
-      return false;
-    }
-    if (home.priceLevel > maxPrice) {
-      return false;
-    }
-    if (home.rating < minRating) {
-      return false;
-    }
-    return true;
-  });
+  const query = q.toLowerCase();
+  const results = nursingHomes
+    .filter((home) => {
+      const qMatch =
+        q.length === 0 ||
+        home.name.toLowerCase().includes(query) ||
+        home.city.toLowerCase().includes(query) ||
+        home.postalCode.includes(q);
+      const careMatch = !care || home.careTypes.includes(care as CareType);
+      const availableMatch = onlyAvailable !== "on" || home.availableSlots > 0;
+      const priceMatch = home.priceLevel <= Number(maxPrice);
+      const ratingMatch = home.rating >= Number(minRating);
+      return qMatch && careMatch && availableMatch && priceMatch && ratingMatch;
+    })
+    .sort((a, b) => b.rating - a.rating || b.availableSlots - a.availableSlots);
 
-  // Sort: rating desc, then availableSlots desc
-  results = results.sort((a, b) => {
-    if (b.rating !== a.rating) return b.rating - a.rating;
-    return b.availableSlots - a.availableSlots;
-  });
+  const activeFilters = getActiveFilters({ q, care, onlyAvailable, maxPrice, minRating });
+
+  const baseQuery = new URLSearchParams({
+    ...(q ? { q } : {}),
+    ...(care ? { care } : {}),
+    ...(onlyAvailable ? { onlyAvailable } : {}),
+    ...(maxPrice ? { maxPrice } : {}),
+    ...(minRating ? { minRating } : {}),
+  }).toString();
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10 md:py-14">
-      {/* Page heading */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-          Pflegeeinrichtungen finden
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {results.length} {results.length === 1 ? "Ergebnis" : "Ergebnisse"}
-          {q ? ` fuer "${params.q}"` : ""}
-        </p>
-      </div>
+    <div className="container-shell pb-16 pt-10">
+      <header>
+        <p className="text-sm font-medium text-slate-500">Suche</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Pflegeheime vergleichen</h1>
+      </header>
 
-      <div className="mt-8 flex flex-col gap-10 lg:flex-row">
-        {/* -- Filter sidebar -- */}
-        <aside className="w-full shrink-0 lg:sticky lg:top-24 lg:h-fit lg:w-64">
-          <form action="/suche" method="GET" className="flex flex-col gap-5">
-            {/* Search input */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[280px_1fr] lg:items-start">
+        <Card className="p-5 lg:sticky lg:top-24" aria-label="Filterbereich">
+          <form action="/suche" method="get" className="space-y-4">
             <div>
-              <label htmlFor="q" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Suche
+              <label htmlFor="q" className="text-sm font-medium text-slate-700">
+                Stadt oder PLZ
               </label>
-              <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
-                <SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <input
-                  id="q"
-                  type="text"
-                  name="q"
-                  defaultValue={params.q ?? ""}
-                  placeholder="Stadt, PLZ, Name..."
-                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                />
-              </div>
+              <Input id="q" name="q" defaultValue={q} className="mt-1.5" />
             </div>
 
-            {/* Care type */}
             <div>
-              <label htmlFor="care" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <label htmlFor="care" className="text-sm font-medium text-slate-700">
                 Pflegeart
               </label>
-              <select
-                id="care"
-                name="care"
-                defaultValue={care}
-                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
+              <Select id="care" name="care" defaultValue={care} className="mt-1.5">
                 <option value="">Alle Pflegearten</option>
-                {(Object.keys(careTypeLabels) as CareType[]).map((key) => (
-                  <option key={key} value={key}>
-                    {careTypeLabels[key]}
+                {Object.entries(careTypeLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
-            {/* Available only */}
-            <label className="flex items-center gap-2.5 text-sm text-foreground">
+            <div className="flex min-h-11 items-center gap-2">
               <input
+                id="onlyAvailable"
                 type="checkbox"
-                name="available"
-                value="1"
-                defaultChecked={availableOnly}
-                className="h-4 w-4 rounded border-border accent-foreground"
+                name="onlyAvailable"
+                defaultChecked={onlyAvailable === "on"}
+                className="h-4 w-4 rounded border-slate-300"
               />
-              Nur verfuegbare Plaetze
-            </label>
-
-            {/* Max price */}
-            <div>
-              <label htmlFor="maxPrice" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {"Max. Preisstufe"}
+              <label htmlFor="onlyAvailable" className="text-sm text-slate-700">
+                Nur freie Plätze
               </label>
-              <select
-                id="maxPrice"
-                name="maxPrice"
-                defaultValue={String(maxPrice)}
-                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="1">{"€"}</option>
-                <option value="2">{"€€"}</option>
-                <option value="3">{"€€€ (alle)"}</option>
-              </select>
             </div>
 
-            {/* Min rating */}
             <div>
-              <label htmlFor="minRating" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <label htmlFor="maxPrice" className="text-sm font-medium text-slate-700">
+                Maximale Preisstufe
+              </label>
+              <Select id="maxPrice" name="maxPrice" defaultValue={maxPrice} className="mt-1.5">
+                <option value="1">€</option>
+                <option value="2">€€</option>
+                <option value="3">€€€</option>
+              </Select>
+            </div>
+
+            <div>
+              <label htmlFor="minRating" className="text-sm font-medium text-slate-700">
                 Mindestbewertung
               </label>
-              <select
-                id="minRating"
-                name="minRating"
-                defaultValue={String(minRating)}
-                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="0">Alle</option>
-                <option value="3">{"ab 3.0 \u2605"}</option>
-                <option value="4">{"ab 4.0 \u2605"}</option>
-                <option value="4.5">{"ab 4.5 \u2605"}</option>
-              </select>
+              <Select id="minRating" name="minRating" defaultValue={minRating} className="mt-1.5">
+                <option value="0">Keine</option>
+                <option value="3.5">Ab 3.5</option>
+                <option value="4">Ab 4.0</option>
+                <option value="4.5">Ab 4.5</option>
+              </Select>
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-foreground py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-80"
-            >
+            <Button type="submit" className="w-full">
               Filter anwenden
-            </button>
+            </Button>
           </form>
-        </aside>
+        </Card>
 
-        {/* -- Results -- */}
-        <div className="flex-1">
-          {results.length > 0 ? (
-            <div className="grid gap-5 md:grid-cols-2">
+        <section aria-live="polite">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-slate-600">{results.length} Ergebnis(se)</p>
+            {activeFilters.length > 0 && (
+              <div className="flex flex-wrap gap-2" aria-label="Aktive Filter">
+                {activeFilters.map((filter) => (
+                  <Badge key={filter}>{filter}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {results.length === 0 ? (
+            <Card className="flex min-h-72 flex-col items-center justify-center p-8 text-center">
+              <h2 className="text-xl font-semibold text-slate-900">Keine passenden Einrichtungen gefunden</h2>
+              <p className="mt-2 max-w-md text-sm text-slate-600">
+                Versuchen Sie eine allgemeinere Stadtangabe oder lockern Sie einzelne Filter.
+              </p>
+              <a href="/suche" className="mt-5">
+                <Button variant="secondary">Filter zurücksetzen</Button>
+              </a>
+            </Card>
+          ) : (
+            <div className="space-y-4">
               {results.map((home) => (
-                <NursingHomeCard key={home.id} home={home} />
+                <NursingHomeCard
+                  key={home.id}
+                  home={home}
+                  href={`/pflegeheim/${home.id}${baseQuery ? `?${baseQuery}` : ""}`}
+                />
               ))}
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3 py-20 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-                <SearchIcon className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-lg font-semibold text-foreground">Keine Ergebnisse</p>
-              <p className="max-w-xs text-sm text-muted-foreground">
-                Versuchen Sie andere Suchbegriffe oder erweitern Sie Ihre Filter.
-              </p>
-              <a
-                href="/suche"
-                className="mt-2 text-sm font-medium text-foreground underline underline-offset-4 transition-opacity hover:opacity-70"
-              >
-                Filter zuruecksetzen
-              </a>
-            </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

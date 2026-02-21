@@ -1,97 +1,60 @@
-import type { NursingHome, CareType } from "@/src/data/nursingHomes";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import type { CareType, NursingHome } from "@/src/data/nursingHomes";
 
 const careTypeLabels: Record<CareType, string> = {
-  stationaer: "Stationaer",
+  stationaer: "Stationär",
   kurzzeit: "Kurzzeitpflege",
-  demenz: "Demenzbetreuung",
+  demenz: "Demenzpflege",
   "betreutes-wohnen": "Betreutes Wohnen",
 };
 
-function StarIcon({ className }: { className?: string }) {
+function PriceLevel({ level }: { level: 1 | 2 | 3 }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-    </svg>
-  );
-}
-
-function PricePills({ level }: { level: 1 | 2 | 3 }) {
-  return (
-    <span
-      className="text-sm tracking-wide text-muted-foreground"
-      aria-label={`Preisstufe ${level} von 3`}
-    >
-      {Array.from({ length: 3 }, (_, i) => (
-        <span key={i} className={i < level ? "text-foreground" : "text-border"}>
-          {"€"}
-        </span>
-      ))}
+    <span className="text-sm text-slate-500" aria-label={`Preisstufe ${level} von 3`}>
+      <span className="text-slate-900">{"€".repeat(level)}</span>
+      <span className="text-slate-300">{"€".repeat(3 - level)}</span>
     </span>
   );
 }
 
-export function NursingHomeCard({ home }: { home: NursingHome }) {
-  const available = home.availableSlots > 0;
+export function NursingHomeCard({ home, href }: { home: NursingHome; href?: string }) {
+  const hasSlots = home.availableSlots > 0;
 
   return (
-    <a
-      href={`/pflegeheim/${home.id}`}
-      className="card-hover group flex flex-col rounded-2xl border border-border bg-card p-6"
-    >
-      {/* Top row: name + rating */}
+    <Card className="p-6 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(15,23,42,0.04),0_18px_40px_rgba(15,23,42,0.08)]">
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-base font-semibold text-foreground group-hover:text-foreground/80">
-            {home.name}
-          </h3>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            {home.address}
-          </p>
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold tracking-tight text-slate-900">{home.name}</h3>
+          <p className="mt-1 truncate text-sm text-slate-600">{home.address}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <StarIcon className="h-4 w-4 text-warning" />
-          <span className="text-sm font-semibold text-foreground">
-            {home.rating.toFixed(1)}
-          </span>
-        </div>
+        <Badge variant="rating">★ {home.rating.toFixed(1)}</Badge>
       </div>
 
-      {/* Description */}
-      <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-        {home.description}
-      </p>
-
-      {/* Care type chips */}
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {home.careTypes.map((ct) => (
-          <Badge key={ct} variant="secondary">
-            {careTypeLabels[ct]}
-          </Badge>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {home.careTypes.map((careType) => (
+          <Badge key={careType}>{careTypeLabels[careType]}</Badge>
         ))}
       </div>
 
-      {/* Bottom bar */}
-      <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-4" style={{ marginTop: "1.25rem" }}>
+      <div className="subtle-divider mt-6 flex items-center justify-between pt-4">
         <div className="flex items-center gap-3">
-          {available ? (
+          {hasSlots ? (
             <Badge variant="success">
-              {home.availableSlots} {home.availableSlots === 1 ? "Platz frei" : "Plaetze frei"}
+              {home.availableSlots} {home.availableSlots === 1 ? "freier Platz" : "freie Plätze"}
             </Badge>
           ) : (
-            <Badge variant="destructive">Ausgebucht</Badge>
+            <Badge variant="danger">Keine freien Plätze</Badge>
           )}
-          <PricePills level={home.priceLevel} />
+          <PriceLevel level={home.priceLevel} />
         </div>
-        <span className="text-sm font-medium text-foreground group-hover:underline">
-          {"Details \u2192"}
-        </span>
+        <a href={href ?? `/pflegeheim/${home.id}`} aria-label={`Details zu ${home.name}`}>
+          <Button variant="secondary" className="h-10">
+            Details
+          </Button>
+        </a>
       </div>
-    </a>
+    </Card>
   );
 }

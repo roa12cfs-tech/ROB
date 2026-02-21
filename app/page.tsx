@@ -1,124 +1,82 @@
-import { nursingHomes } from "@/src/data/nursingHomes";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 
-function SearchIcon({ className }: { className?: string }) {
+const careTypes = [
+  { value: "", label: "Alle Pflegearten" },
+  { value: "stationaer", label: "Stationäre Pflege" },
+  { value: "kurzzeit", label: "Kurzzeitpflege" },
+  { value: "demenz", label: "Demenzpflege" },
+  { value: "betreutes-wohnen", label: "Betreutes Wohnen" },
+];
+
+export default function HomePage() {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-    </svg>
-  );
-}
-
-function Metric({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="text-center">
-      <p className="text-2xl font-semibold text-foreground md:text-3xl">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
-function Step({ number, title, description }: { number: string; title: string; description: string }) {
-  return (
-    <div className="flex flex-col items-center text-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-sm font-semibold text-background">
-        {number}
-      </div>
-      <h3 className="mt-4 text-base font-semibold text-foreground">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-export default function LandingPage() {
-  const totalSlots = nursingHomes.reduce((sum, h) => sum + h.availableSlots, 0);
-  const cities = new Set(nursingHomes.map((h) => h.city)).size;
-
-  return (
-    <div>
-      {/* Hero */}
-      <section className="px-6 pb-16 pt-20 md:pb-24 md:pt-32">
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-            Die richtige Pflege finden.
-          </h1>
-          <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
-            Vergleichen Sie Pflegeeinrichtungen in ganz Deutschland.
-            Transparent, unabhaengig und kostenlos.
-          </p>
-
-          {/* Search card */}
-          <form
-            action="/suche"
-            method="GET"
-            className="mx-auto mt-10 flex max-w-lg items-center gap-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-          >
-            <SearchIcon className="ml-5 h-5 w-5 shrink-0 text-muted-foreground" />
-            <input
-              type="text"
-              name="q"
-              placeholder="Stadt, PLZ oder Name..."
-              className="min-w-0 flex-1 bg-transparent px-3 py-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-              aria-label="Suchbegriff eingeben"
-            />
-            <select
-              name="care"
-              className="border-l border-border bg-transparent px-3 py-4 text-sm text-muted-foreground focus:outline-none"
-              aria-label="Pflegeart waehlen"
-            >
-              <option value="">Alle Pflegearten</option>
-              <option value="stationaer">Stationaer</option>
-              <option value="kurzzeit">Kurzzeitpflege</option>
-              <option value="demenz">Demenzbetreuung</option>
-              <option value="betreutes-wohnen">Betreutes Wohnen</option>
-            </select>
-            <button
-              type="submit"
-              className="m-1.5 rounded-xl bg-foreground px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-80"
-            >
-              Suchen
-            </button>
-          </form>
-        </div>
+    <div className="container-shell pb-16 pt-12 md:pt-16">
+      <section>
+        <p className="text-sm font-medium text-slate-500">Pflege in Deutschland</p>
+        <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
+          Den passenden Pflegeplatz finden – klar, ruhig und verlässlich.
+        </h1>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-600">
+          Vergleichen Sie Einrichtungen nach Ort, Pflegeart, Verfügbarkeit, Preisniveau und Bewertung.
+        </p>
       </section>
 
-      {/* Separator */}
-      <div className="mx-auto max-w-6xl border-t border-border/60" />
-
-      {/* Trust metrics */}
-      <section className="px-6 py-16 md:py-20">
-        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-8">
-          <Metric value={String(nursingHomes.length)} label="Einrichtungen" />
-          <Metric value={String(cities)} label="Staedte" />
-          <Metric value={String(totalSlots)} label="Freie Plaetze" />
-        </div>
-      </section>
-
-      {/* Separator */}
-      <div className="mx-auto max-w-6xl border-t border-border/60" />
-
-      {/* How it works */}
-      <section className="px-6 py-16 md:py-20">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            So funktioniert es
-          </h2>
-          <div className="mt-12 grid gap-10 md:grid-cols-3">
-            <Step
-              number="1"
-              title="Suchen"
-              description="Geben Sie Ihren Standort oder eine Pflegeart ein und finden Sie passende Einrichtungen."
-            />
-            <Step
-              number="2"
-              title="Vergleichen"
-              description="Bewertungen, Preise und Ausstattung auf einen Blick. Filtern Sie nach Ihren Kriterien."
-            />
-            <Step
-              number="3"
-              title="Anfragen"
-              description="Kontaktieren Sie Einrichtungen direkt und erhalten Sie alle wichtigen Informationen."
-            />
+      <Card className="mt-8 p-5 md:p-6">
+        <form action="/suche" method="get" className="grid gap-4 md:grid-cols-[1fr_240px_auto]">
+          <div>
+            <label htmlFor="q" className="text-sm font-medium text-slate-700">
+              Stadt oder PLZ
+            </label>
+            <Input id="q" name="q" placeholder="z. B. Berlin oder 10115" className="mt-2" />
           </div>
+          <div>
+            <label htmlFor="care" className="text-sm font-medium text-slate-700">
+              Pflegeart
+            </label>
+            <Select id="care" name="care" defaultValue="" className="mt-2">
+              {careTypes.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Button type="submit" className="self-end">
+            Suche starten
+          </Button>
+        </form>
+        <p className="mt-3 text-xs text-slate-500">Hinweis: Diese Anwendung arbeitet mit Demo-Daten.</p>
+      </Card>
+
+      <section className="mt-8 grid gap-4 sm:grid-cols-3">
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold text-slate-900">Geprüfte Einträge</h2>
+          <p className="mt-1 text-sm text-slate-600">Kompakte Stammdaten zur ersten Orientierung.</p>
+        </Card>
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold text-slate-900">Transparenter Vergleich</h2>
+          <p className="mt-1 text-sm text-slate-600">Bewertung, Preisniveau und Verfügbarkeit auf einen Blick.</p>
+        </Card>
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold text-slate-900">Kostenfrei nutzbar</h2>
+          <p className="mt-1 text-sm text-slate-600">Suche ohne Anmeldung oder versteckte Gebühren.</p>
+        </Card>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900">So funktioniert’s</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          {["Ort und Pflegeart wählen", "Ergebnisse filtern und vergleichen", "Details prüfen und Anfrage senden"].map(
+            (step, index) => (
+              <Card key={step} className="p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schritt {index + 1}</p>
+                <p className="mt-2 text-sm text-slate-700">{step}</p>
+              </Card>
+            ),
+          )}
         </div>
       </section>
     </div>

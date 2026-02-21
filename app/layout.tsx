@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 
 function Nav() {
   return (
-    <header className="glass-nav sticky top-0 z-50 border-b border-border/60">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-card">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <a href="/" className="flex items-center gap-2.5" aria-label="PflegeFinder Startseite">
           <div className="h-7 w-7 rounded-md bg-foreground" aria-hidden="true" />
@@ -34,7 +34,7 @@ function Nav() {
             href="/"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Startseite
+            Start
           </a>
           <a
             href="/suche"
@@ -50,14 +50,14 @@ function Nav() {
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-border/60">
+    <footer className="border-t border-border/60 bg-card">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 py-10 md:flex-row md:justify-between">
         <div className="flex items-center gap-2.5">
           <div className="h-5 w-5 rounded-sm bg-foreground" aria-hidden="true" />
           <span className="text-sm font-medium text-foreground">PflegeFinder</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          {"© 2026 PflegeFinder. Alle Rechte vorbehalten."}
+          {"© 2026 PflegeFinder. Sachlich. Unabh\u00e4ngig. Klar."}
         </p>
       </div>
     </footer>

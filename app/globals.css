@@ -14,7 +14,9 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-slate-50 text-slate-900 antialiased;
+    background-image: radial-gradient(circle at 15% -10%, rgba(148, 163, 184, 0.1), transparent 36%),
+      radial-gradient(circle at 90% 0%, rgba(148, 163, 184, 0.07), transparent 32%);
   }
 
   :focus-visible {
@@ -22,18 +24,12 @@
   }
 }
 
-@layer components {
-  .surface {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03),0_16px_40px_rgba(15,23,42,0.04)];
-  }
-
-  .subtle-separator {
-    @apply border-t border-slate-200/80;
-  }
-}
-
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .container-shell {
+    @apply mx-auto w-full max-w-6xl px-6;
+  }
+
+  .subtle-divider {
+    @apply border-t border-slate-200/80;
   }
 }

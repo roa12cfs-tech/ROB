@@ -1,3 +1,8 @@
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { NursingHomeCard } from "@/components/NursingHomeCard";
 import type { CareType } from "@/src/data/nursingHomes";
 import { nursingHomes } from "@/src/data/nursingHomes";
@@ -9,6 +14,14 @@ const careTypeLabels: Record<CareType, string> = {
   "betreutes-wohnen": "Betreutes Wohnen",
 };
 
+type SearchParams = {
+  q?: string;
+  care?: CareType;
+  onlyAvailable?: string;
+  maxPrice?: string;
+  minRating?: string;
+};
+
 function parsePrice(value?: string) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 3;
@@ -18,95 +31,102 @@ function parsePrice(value?: string) {
 function parseRating(value?: string) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 0;
-  return Math.min(5, Math.max(0, parsed));
+  return [0, 3.5, 4.0, 4.5].includes(parsed) ? parsed : 0;
 }
 
-export default async function SearchPage({
-  searchParams,
+function getActiveFilters({
+  q,
+  care,
+  onlyAvailable,
+  maxPrice,
+  minRating,
 }: {
-  searchParams: Promise<{
-    q?: string;
-    care?: CareType;
-    onlyAvailable?: string;
-    maxPrice?: string;
-    minRating?: string;
-  }>;
+  q: string;
+  care: "" | CareType;
+  onlyAvailable: string;
+  maxPrice: string;
+  minRating: string;
 }) {
+  const filters: string[] = [];
+  if (q) filters.push(`Ort: ${q}`);
+  if (care) filters.push(careTypeLabels[care]);
+  if (onlyAvailable === "on") filters.push("Nur freie Plätze");
+  if (maxPrice !== "3") filters.push(`Max. Preis: ${"€".repeat(Number(maxPrice))}`);
+  if (minRating !== "0") filters.push(`Ab ${Number(minRating).toFixed(1)} ★`);
+  return filters;
+}
+
+export default async function SearchPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
-  const qLower = q.toLowerCase();
-  const care = params.care;
-  const onlyAvailable = params.onlyAvailable === "on";
-  const maxPrice = parsePrice(params.maxPrice);
-  const minRating = parseRating(params.minRating);
+  const care = params.care ?? "";
+  const onlyAvailable = params.onlyAvailable ?? "";
+  const maxPrice = String(parsePrice(params.maxPrice));
+  const minRating = String(parseRating(params.minRating));
 
+  const query = q.toLowerCase();
   const results = nursingHomes
     .filter((home) => {
-      const queryMatch =
+      const qMatch =
         q.length === 0 ||
-        home.city.toLowerCase().includes(qLower) ||
-        home.postalCode.includes(q) ||
-        home.address.toLowerCase().includes(qLower);
-
-      const careMatch = !care || home.careTypes.includes(care);
-      const availabilityMatch = !onlyAvailable || home.availableSlots > 0;
-      const priceMatch = home.priceLevel <= maxPrice;
-      const ratingMatch = home.rating >= minRating;
-
-      return queryMatch && careMatch && availabilityMatch && priceMatch && ratingMatch;
+        home.name.toLowerCase().includes(query) ||
+        home.city.toLowerCase().includes(query) ||
+        home.postalCode.includes(q);
+      const careMatch = !care || home.careTypes.includes(care as CareType);
+      const availableMatch = onlyAvailable !== "on" || home.availableSlots > 0;
+      const priceMatch = home.priceLevel <= Number(maxPrice);
+      const ratingMatch = home.rating >= Number(minRating);
+      return qMatch && careMatch && availableMatch && priceMatch && ratingMatch;
     })
     .sort((a, b) => b.rating - a.rating || b.availableSlots - a.availableSlots);
 
+  const activeFilters = getActiveFilters({ q, care, onlyAvailable, maxPrice, minRating });
+
+  const baseQuery = new URLSearchParams({
+    ...(q ? { q } : {}),
+    ...(care ? { care } : {}),
+    ...(onlyAvailable ? { onlyAvailable } : {}),
+    ...(maxPrice ? { maxPrice } : {}),
+    ...(minRating ? { minRating } : {}),
+  }).toString();
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 pb-16 pt-10">
-      <header className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Pflegeheime finden</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Filtern Sie nach Pflegeform, Verfügbarkeit, Preisniveau und Bewertung.
-        </p>
+    <div className="container-shell pb-16 pt-10">
+      <header>
+        <p className="text-sm font-medium text-slate-500">Suche</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Pflegeheime vergleichen</h1>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr] lg:items-start">
-        <aside className="surface p-5 lg:sticky lg:top-24" aria-label="Filterbereich">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[280px_1fr] lg:items-start">
+        <Card className="p-5 lg:sticky lg:top-24" aria-label="Filterbereich">
           <form action="/suche" method="get" className="space-y-4">
             <div>
               <label htmlFor="q" className="text-sm font-medium text-slate-700">
                 Stadt oder PLZ
               </label>
-              <input
-                id="q"
-                name="q"
-                defaultValue={q}
-                className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
-                placeholder="z. B. München"
-              />
+              <Input id="q" name="q" defaultValue={q} className="mt-1.5" />
             </div>
 
             <div>
               <label htmlFor="care" className="text-sm font-medium text-slate-700">
                 Pflegeart
               </label>
-              <select
-                id="care"
-                name="care"
-                defaultValue={care ?? ""}
-                className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
-              >
+              <Select id="care" name="care" defaultValue={care} className="mt-1.5">
                 <option value="">Alle Pflegearten</option>
                 {Object.entries(careTypeLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex min-h-11 items-center gap-2">
               <input
                 id="onlyAvailable"
                 type="checkbox"
                 name="onlyAvailable"
-                defaultChecked={onlyAvailable}
+                defaultChecked={onlyAvailable === "on"}
                 className="h-4 w-4 rounded border-slate-300"
               />
               <label htmlFor="onlyAvailable" className="text-sm text-slate-700">
@@ -118,57 +138,62 @@ export default async function SearchPage({
               <label htmlFor="maxPrice" className="text-sm font-medium text-slate-700">
                 Maximale Preisstufe
               </label>
-              <select
-                id="maxPrice"
-                name="maxPrice"
-                defaultValue={String(maxPrice)}
-                className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
-              >
+              <Select id="maxPrice" name="maxPrice" defaultValue={maxPrice} className="mt-1.5">
                 <option value="1">€</option>
                 <option value="2">€€</option>
                 <option value="3">€€€</option>
-              </select>
+              </Select>
             </div>
 
             <div>
               <label htmlFor="minRating" className="text-sm font-medium text-slate-700">
-                Mindestbewertung: {minRating.toFixed(1)}
+                Mindestbewertung
               </label>
-              <input
-                id="minRating"
-                type="range"
-                min="0"
-                max="5"
-                step="0.1"
-                name="minRating"
-                defaultValue={String(minRating)}
-                className="mt-2 w-full accent-slate-900"
-              />
+              <Select id="minRating" name="minRating" defaultValue={minRating} className="mt-1.5">
+                <option value="0">Keine</option>
+                <option value="3.5">Ab 3.5</option>
+                <option value="4">Ab 4.0</option>
+                <option value="4.5">Ab 4.5</option>
+              </Select>
             </div>
 
-            <button
-              type="submit"
-              className="h-10 w-full rounded-xl bg-slate-900 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
+            <Button type="submit" className="w-full">
               Filter anwenden
-            </button>
+            </Button>
           </form>
-        </aside>
+        </Card>
 
         <section aria-live="polite">
-          <div className="mb-4 text-sm text-slate-600">{results.length} Ergebnis(se)</div>
-          {results.length > 0 ? (
-            <div className="space-y-4">
-              {results.map((home) => (
-                <NursingHomeCard key={home.id} home={home} />
-              ))}
-            </div>
-          ) : (
-            <div className="surface flex min-h-72 flex-col items-center justify-center p-8 text-center">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-slate-600">{results.length} Ergebnis(se)</p>
+            {activeFilters.length > 0 && (
+              <div className="flex flex-wrap gap-2" aria-label="Aktive Filter">
+                {activeFilters.map((filter) => (
+                  <Badge key={filter}>{filter}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {results.length === 0 ? (
+            <Card className="flex min-h-72 flex-col items-center justify-center p-8 text-center">
               <h2 className="text-xl font-semibold text-slate-900">Keine passenden Einrichtungen gefunden</h2>
               <p className="mt-2 max-w-md text-sm text-slate-600">
-                Erweitern Sie die Suche, indem Sie den Ort allgemeiner wählen oder Filter lockern.
+                Versuchen Sie eine allgemeinere Stadtangabe oder lockern Sie einzelne Filter.
               </p>
+              <a href="/suche" className="mt-5">
+                <Button variant="secondary">Filter zurücksetzen</Button>
+              </a>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {results.map((home) => (
+                <NursingHomeCard
+                  key={home.id}
+                  home={home}
+                  href={`/pflegeheim/${home.id}${baseQuery ? `?${baseQuery}` : ""}`}
+                />
+              ))}
             </div>
           )}
         </section>

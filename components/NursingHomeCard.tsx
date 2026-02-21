@@ -1,4 +1,6 @@
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import type { CareType, NursingHome } from "@/src/data/nursingHomes";
 
 const careTypeLabels: Record<CareType, string> = {
@@ -17,20 +19,18 @@ function PriceLevel({ level }: { level: 1 | 2 | 3 }) {
   );
 }
 
-export function NursingHomeCard({ home }: { home: NursingHome }) {
+export function NursingHomeCard({ home, href }: { home: NursingHome; href?: string }) {
   const hasSlots = home.availableSlots > 0;
 
   return (
-    <article className="surface group p-6 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_20px_46px_rgba(15,23,42,0.08)]">
+    <Card className="p-6 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgba(15,23,42,0.04),0_18px_40px_rgba(15,23,42,0.08)]">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold tracking-tight text-slate-900">{home.name}</h3>
-          <p className="mt-1 text-sm text-slate-600">{home.address}</p>
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-semibold tracking-tight text-slate-900">{home.name}</h3>
+          <p className="mt-1 truncate text-sm text-slate-600">{home.address}</p>
         </div>
         <Badge variant="rating">★ {home.rating.toFixed(1)}</Badge>
       </div>
-
-      <p className="mt-4 text-sm leading-relaxed text-slate-600">{home.description}</p>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {home.careTypes.map((careType) => (
@@ -38,7 +38,7 @@ export function NursingHomeCard({ home }: { home: NursingHome }) {
         ))}
       </div>
 
-      <div className="subtle-separator mt-6 flex items-center justify-between pt-4">
+      <div className="subtle-divider mt-6 flex items-center justify-between pt-4">
         <div className="flex items-center gap-3">
           {hasSlots ? (
             <Badge variant="success">
@@ -49,14 +49,12 @@ export function NursingHomeCard({ home }: { home: NursingHome }) {
           )}
           <PriceLevel level={home.priceLevel} />
         </div>
-        <a
-          href={`/pflegeheim/${home.id}`}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 group-hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
-          aria-label={`Details zu ${home.name}`}
-        >
-          Details
+        <a href={href ?? `/pflegeheim/${home.id}`} aria-label={`Details zu ${home.name}`}>
+          <Button variant="secondary" className="h-10">
+            Details
+          </Button>
         </a>
       </div>
-    </article>
+    </Card>
   );
 }

@@ -1,207 +1,113 @@
 import { notFound } from "next/navigation";
-import { nursingHomes, type CareType } from "@/src/data/nursingHomes";
 import { Badge } from "@/components/ui/Badge";
+import { nursingHomes } from "@/src/data/nursingHomes";
 
-const careTypeLabels: Record<CareType, string> = {
-  stationaer: "Stationaer",
-  kurzzeit: "Kurzzeitpflege",
-  demenz: "Demenzbetreuung",
-  "betreutes-wohnen": "Betreutes Wohnen",
-};
-
-function StarIcon({ className }: { className?: string }) {
+function PriceLevel({ level }: { level: 1 | 2 | 3 }) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-    </svg>
+    <p className="text-sm text-slate-600" aria-label={`Preisstufe ${level} von 3`}>
+      Preisniveau: <span className="font-medium text-slate-900">{"€".repeat(level)}</span>
+      <span className="text-slate-300">{"€".repeat(3 - level)}</span>
+    </p>
   );
 }
 
-function KeyFact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card p-5">
-      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-      <span className="text-lg font-semibold text-foreground">{value}</span>
-    </div>
-  );
-}
-
-export default async function PflegeheimDetail({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const home = nursingHomes.find((h) => h.id === id);
-
-  if (!home) return notFound();
-
-  const available = home.availableSlots > 0;
-  const priceLabel = Array.from({ length: home.priceLevel }, () => "\u20AC").join("");
+export default async function NursingHomeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const routeParams = await params;
+  const home = nursingHomes.find((entry) => entry.id === routeParams.id);
+  if (!home) notFound();
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 md:py-16">
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="mb-8">
-        <ol className="flex items-center gap-2 text-sm text-muted-foreground">
-          <li>
-            <a href="/" className="transition-colors hover:text-foreground">Startseite</a>
-          </li>
-          <li aria-hidden="true">/</li>
-          <li>
-            <a href="/suche" className="transition-colors hover:text-foreground">Suche</a>
-          </li>
-          <li aria-hidden="true">/</li>
-          <li className="truncate text-foreground">{home.name}</li>
-        </ol>
-      </nav>
+    <div className="mx-auto w-full max-w-6xl px-6 pb-16 pt-10">
+      <section className="surface p-8 md:p-10">
+        <p className="text-sm font-medium text-slate-500">Einrichtungsprofil</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">{home.name}</h1>
+        <p className="mt-3 text-sm text-slate-600">{home.address}</p>
 
-      {/* Hero header */}
-      <header>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-              {home.name}
-            </h1>
-            <p className="mt-2 text-base text-muted-foreground">{home.address}</p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Bewertung</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">★ {home.rating.toFixed(1)}</p>
           </div>
-          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
-            <StarIcon className="h-5 w-5 text-warning" />
-            <span className="text-xl font-bold text-foreground">{home.rating.toFixed(1)}</span>
-            <span className="text-sm text-muted-foreground">/ 5.0</span>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Freie Plätze</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">{home.availableSlots}</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Preisstufe</p>
+            <PriceLevel level={home.priceLevel} />
           </div>
         </div>
-
-        {/* Tags */}
-        <div className="mt-5 flex flex-wrap gap-2">
-          {home.careTypes.map((ct) => (
-            <Badge key={ct} variant="outline">{careTypeLabels[ct]}</Badge>
-          ))}
-          {available ? (
-            <Badge variant="success">
-              {home.availableSlots} {home.availableSlots === 1 ? "Platz frei" : "Plaetze frei"}
-            </Badge>
-          ) : (
-            <Badge variant="destructive">Ausgebucht</Badge>
-          )}
-        </div>
-      </header>
-
-      {/* Separator */}
-      <div className="my-10 border-t border-border/60" />
-
-      {/* Key facts grid */}
-      <section aria-labelledby="facts-heading">
-        <h2 id="facts-heading" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Auf einen Blick
-        </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-          <KeyFact label="Bewertung" value={`${home.rating.toFixed(1)} / 5.0`} />
-          <KeyFact label="Preisstufe" value={priceLabel} />
-          <KeyFact label="Freie Plaetze" value={available ? String(home.availableSlots) : "Keine"} />
-          <KeyFact label="Standort" value={`${home.postalCode} ${home.city}`} />
-        </div>
       </section>
 
-      {/* Description */}
-      <section className="mt-10" aria-labelledby="desc-heading">
-        <h2 id="desc-heading" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Beschreibung
-        </h2>
-        <p className="mt-3 text-base leading-relaxed text-foreground">
-          {home.description}
-        </p>
-      </section>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
+        <section className="surface p-6 md:p-8">
+          <h2 className="text-xl font-semibold tracking-tight text-slate-900">Über die Einrichtung</h2>
+          <p className="mt-4 leading-relaxed text-slate-600">{home.description}</p>
 
-      {/* Amenities */}
-      <section className="mt-10" aria-labelledby="amenities-heading">
-        <h2 id="amenities-heading" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Ausstattung
-        </h2>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {home.amenities.map((a) => (
-            <Badge key={a} variant="secondary" className="px-3 py-1 text-sm">
-              {a}
-            </Badge>
-          ))}
-        </div>
-      </section>
-
-      {/* Bottom cards: Inquiry + Map placeholder */}
-      <div className="mt-12 grid gap-6 md:grid-cols-2">
-        {/* Inquiry form */}
-        <section className="rounded-2xl border border-border bg-card p-6" aria-labelledby="inquiry-heading">
-          <h2 id="inquiry-heading" className="text-base font-semibold text-foreground">
-            Anfrage senden
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Wir leiten Ihre Nachricht direkt an die Einrichtung weiter.
-          </p>
-          <form className="mt-5 flex flex-col gap-4">
-            <div>
-              <label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                placeholder="Ihr Name"
-                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                E-Mail
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="ihre@email.de"
-                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-            <div>
-              <label htmlFor="message" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Nachricht
-              </label>
-              <textarea
-                id="message"
-                rows={3}
-                placeholder="Ihre Nachricht..."
-                className="mt-1.5 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-            <button
-              type="button"
-              className="w-full rounded-xl bg-foreground py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-80"
-            >
-              Anfrage absenden
-            </button>
-          </form>
+          <h3 className="mt-8 text-sm font-semibold uppercase tracking-wide text-slate-500">Leistungen</h3>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {home.amenities.map((amenity) => (
+              <Badge key={amenity}>{amenity}</Badge>
+            ))}
+          </div>
         </section>
 
-        {/* Map placeholder */}
-        <section className="flex flex-col items-center justify-center rounded-2xl border border-border bg-secondary p-6" aria-label="Kartenansicht">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-background">
-            <svg className="h-6 w-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 0115 0z" />
-            </svg>
-          </div>
-          <p className="mt-4 text-sm font-medium text-foreground">Kartenansicht</p>
-          <p className="mt-1 text-xs text-muted-foreground">{home.address}</p>
-        </section>
+        <div className="space-y-6">
+          <section className="surface p-6">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Anfrage senden</h2>
+            <form className="mt-4 space-y-3">
+              <div>
+                <label htmlFor="name" className="text-sm font-medium text-slate-700">
+                  Ihr Name
+                </label>
+                <input id="name" className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" />
+              </div>
+              <div>
+                <label htmlFor="email" className="text-sm font-medium text-slate-700">
+                  E-Mail
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="message" className="text-sm font-medium text-slate-700">
+                  Nachricht
+                </label>
+                <textarea
+                  id="message"
+                  rows={4}
+                  className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="Worum geht es in Ihrer Anfrage?"
+                />
+              </div>
+              <button
+                type="button"
+                className="h-10 w-full rounded-xl bg-slate-900 text-sm font-medium text-white transition hover:bg-slate-800"
+              >
+                Anfrage absenden
+              </button>
+            </form>
+          </section>
+
+          <section className="surface p-6" aria-label="Kartenbereich">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Lage</h2>
+            <div className="mt-4 flex h-44 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
+              Kartenansicht Platzhalter
+            </div>
+            <p className="mt-3 text-sm text-slate-600">{home.address}</p>
+          </section>
+        </div>
       </div>
 
-      {/* Back link */}
-      <div className="mt-12">
-        <a
-          href="/suche"
-          className="text-sm font-medium text-foreground underline underline-offset-4 transition-opacity hover:opacity-70"
-        >
-          {"\u2190 Zurueck zur Suche"}
-        </a>
-      </div>
+      <a
+        href="/suche"
+        className="mt-8 inline-flex rounded-lg px-2 py-1 text-sm font-medium text-slate-700 underline underline-offset-4 transition hover:text-slate-900"
+      >
+        Zurück zur Suche
+      </a>
     </div>
   );
 }

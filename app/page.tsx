@@ -1,125 +1,92 @@
-import { nursingHomes } from "@/src/data/nursingHomes";
+const careTypes = [
+  { value: "", label: "Pflegeart wählen" },
+  { value: "stationaer", label: "Stationäre Pflege" },
+  { value: "kurzzeit", label: "Kurzzeitpflege" },
+  { value: "demenz", label: "Demenzpflege" },
+  { value: "betreutes-wohnen", label: "Betreutes Wohnen" },
+];
 
-function SearchIcon({ className }: { className?: string }) {
+export default function HomePage() {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-    </svg>
-  );
-}
+    <div className="mx-auto w-full max-w-6xl px-6 pb-16 pt-12 md:pt-16">
+      <section className="surface p-8 md:p-12">
+        <p className="text-sm font-medium text-slate-500">Pflege in Deutschland</p>
+        <h1 className="mt-3 max-w-3xl text-balance text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
+          Den passenden Pflegeplatz finden – ruhig, transparent und ohne Umwege.
+        </h1>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-600">
+          PflegeFinder unterstützt Sie bei der ersten Orientierung: nach Ort, Pflegeform und Verfügbarkeit.
+        </p>
 
-function Metric({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="text-center">
-      <p className="text-2xl font-semibold text-foreground md:text-3xl">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
-function Step({ number, title, description }: { number: string; title: string; description: string }) {
-  return (
-    <div className="flex flex-col items-center text-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-sm font-semibold text-background">
-        {number}
-      </div>
-      <h3 className="mt-4 text-base font-semibold text-foreground">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-export default function LandingPage() {
-  const totalSlots = nursingHomes.reduce((sum, h) => sum + h.availableSlots, 0);
-  const cities = new Set(nursingHomes.map((h) => h.city)).size;
-
-  return (
-    <div>
-      {/* Hero */}
-      <section className="px-6 pb-16 pt-20 md:pb-24 md:pt-32">
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-            Die richtige Pflege finden.
-          </h1>
-          <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground md:text-lg">
-            Vergleichen Sie Pflegeeinrichtungen in ganz Deutschland.
-            Transparent, unabhaengig und kostenlos.
-          </p>
-
-          {/* Search card */}
-          <form
-            action="/suche"
-            method="GET"
-            className="mx-auto mt-10 flex max-w-lg items-center gap-0 overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-          >
-            <SearchIcon className="ml-5 h-5 w-5 shrink-0 text-muted-foreground" />
+        <form action="/suche" method="get" className="mt-8 grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_240px_auto] md:p-5">
+          <div>
+            <label htmlFor="q" className="text-sm font-medium text-slate-700">
+              Stadt oder PLZ
+            </label>
             <input
-              type="text"
+              id="q"
               name="q"
-              placeholder="Stadt, PLZ oder Name..."
-              className="min-w-0 flex-1 bg-transparent px-3 py-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-              aria-label="Suchbegriff eingeben"
-            />
-            <select
-              name="care"
-              className="border-l border-border bg-transparent px-3 py-4 text-sm text-muted-foreground focus:outline-none"
-              aria-label="Pflegeart waehlen"
-            >
-              <option value="">Alle Pflegearten</option>
-              <option value="stationaer">Stationaer</option>
-              <option value="kurzzeit">Kurzzeitpflege</option>
-              <option value="demenz">Demenzbetreuung</option>
-              <option value="betreutes-wohnen">Betreutes Wohnen</option>
-            </select>
-            <button
-              type="submit"
-              className="m-1.5 rounded-xl bg-foreground px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-80"
-            >
-              Suchen
-            </button>
-          </form>
-        </div>
-      </section>
-
-      {/* Separator */}
-      <div className="mx-auto max-w-6xl border-t border-border/60" />
-
-      {/* Trust metrics */}
-      <section className="px-6 py-16 md:py-20">
-        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-8">
-          <Metric value={String(nursingHomes.length)} label="Einrichtungen" />
-          <Metric value={String(cities)} label="Staedte" />
-          <Metric value={String(totalSlots)} label="Freie Plaetze" />
-        </div>
-      </section>
-
-      {/* Separator */}
-      <div className="mx-auto max-w-6xl border-t border-border/60" />
-
-      {/* How it works */}
-      <section className="px-6 py-16 md:py-20">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            So funktioniert es
-          </h2>
-          <div className="mt-12 grid gap-10 md:grid-cols-3">
-            <Step
-              number="1"
-              title="Suchen"
-              description="Geben Sie Ihren Standort oder eine Pflegeart ein und finden Sie passende Einrichtungen."
-            />
-            <Step
-              number="2"
-              title="Vergleichen"
-              description="Bewertungen, Preise und Ausstattung auf einen Blick. Filtern Sie nach Ihren Kriterien."
-            />
-            <Step
-              number="3"
-              title="Anfragen"
-              description="Kontaktieren Sie Einrichtungen direkt und erhalten Sie alle wichtigen Informationen."
+              placeholder="z. B. Berlin oder 10115"
+              className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
             />
           </div>
-        </div>
+          <div>
+            <label htmlFor="care" className="text-sm font-medium text-slate-700">
+              Pflegeart
+            </label>
+            <select
+              id="care"
+              name="care"
+              className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900"
+              defaultValue=""
+            >
+              {careTypes.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="h-11 self-end rounded-xl bg-slate-900 px-5 text-sm font-medium text-white transition hover:bg-slate-800"
+          >
+            Suche starten
+          </button>
+        </form>
+
+        <dl className="mt-8 grid gap-4 border-t border-slate-200 pt-6 text-sm text-slate-600 sm:grid-cols-3">
+          <div>
+            <dt className="font-medium text-slate-900">Geprüfte Einträge</dt>
+            <dd className="mt-1">Aktuelle Stammdaten und Leistungsprofile.</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-slate-900">Klare Vergleichbarkeit</dt>
+            <dd className="mt-1">Bewertungen, Preisniveau und freie Plätze auf einen Blick.</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-slate-900">Kostenfrei nutzbar</dt>
+            <dd className="mt-1">Unabhängige Suche ohne Registrierung.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="mt-10 grid gap-6 md:grid-cols-2">
+        <article className="surface p-6">
+          <h2 className="text-lg font-semibold tracking-tight">So funktioniert es</h2>
+          <ol className="mt-4 space-y-3 text-sm text-slate-600">
+            <li>1. Ort und Pflegeform auswählen.</li>
+            <li>2. Ergebnisse nach Verfügbarkeit, Preis und Bewertung filtern.</li>
+            <li>3. Details vergleichen und direkt Kontakt aufnehmen.</li>
+          </ol>
+        </article>
+        <article className="surface p-6">
+          <h2 className="text-lg font-semibold tracking-tight">Für Angehörige und Betroffene</h2>
+          <p className="mt-4 text-sm leading-relaxed text-slate-600">
+            Die Suche ist bewusst reduziert gestaltet, damit Entscheidungen in einer anspruchsvollen
+            Situation leicht und konzentriert getroffen werden können.
+          </p>
+        </article>
       </section>
     </div>
   );

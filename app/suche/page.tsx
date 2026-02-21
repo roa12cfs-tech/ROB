@@ -1,206 +1,177 @@
-import { nursingHomes, type CareType } from "@/src/data/nursingHomes";
 import { NursingHomeCard } from "@/components/NursingHomeCard";
+import type { CareType } from "@/src/data/nursingHomes";
+import { nursingHomes } from "@/src/data/nursingHomes";
 
 const careTypeLabels: Record<CareType, string> = {
-  stationaer: "Stationaer",
+  stationaer: "Stationäre Pflege",
   kurzzeit: "Kurzzeitpflege",
-  demenz: "Demenzbetreuung",
+  demenz: "Demenzpflege",
   "betreutes-wohnen": "Betreutes Wohnen",
 };
 
-function SearchIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-    </svg>
-  );
+function parsePrice(value?: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 3;
+  return Math.min(3, Math.max(1, Math.round(parsed))) as 1 | 2 | 3;
 }
 
-type SearchParams = {
-  q?: string;
-  care?: string;
-  available?: string;
-  maxPrice?: string;
-  minRating?: string;
-};
+function parseRating(value?: string) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.min(5, Math.max(0, parsed));
+}
 
-export default async function SuchePage({
+export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: Promise<{
+    q?: string;
+    care?: CareType;
+    onlyAvailable?: string;
+    maxPrice?: string;
+    minRating?: string;
+  }>;
 }) {
   const params = await searchParams;
+  const q = params.q?.trim() ?? "";
+  const qLower = q.toLowerCase();
+  const care = params.care;
+  const onlyAvailable = params.onlyAvailable === "on";
+  const maxPrice = parsePrice(params.maxPrice);
+  const minRating = parseRating(params.minRating);
 
-  const q = params.q?.toLowerCase().trim() ?? "";
-  const care = params.care ?? "";
-  const availableOnly = params.available === "1";
-  const maxPrice = params.maxPrice ? Number(params.maxPrice) : 3;
-  const minRating = params.minRating ? Number(params.minRating) : 0;
+  const results = nursingHomes
+    .filter((home) => {
+      const queryMatch =
+        q.length === 0 ||
+        home.city.toLowerCase().includes(qLower) ||
+        home.postalCode.includes(q) ||
+        home.address.toLowerCase().includes(qLower);
 
-  // Filter
-  let results = nursingHomes.filter((home) => {
-    if (q && !home.name.toLowerCase().includes(q) && !home.city.toLowerCase().includes(q) && !home.postalCode.includes(q)) {
-      return false;
-    }
-    if (care && !home.careTypes.includes(care as CareType)) {
-      return false;
-    }
-    if (availableOnly && home.availableSlots === 0) {
-      return false;
-    }
-    if (home.priceLevel > maxPrice) {
-      return false;
-    }
-    if (home.rating < minRating) {
-      return false;
-    }
-    return true;
-  });
+      const careMatch = !care || home.careTypes.includes(care);
+      const availabilityMatch = !onlyAvailable || home.availableSlots > 0;
+      const priceMatch = home.priceLevel <= maxPrice;
+      const ratingMatch = home.rating >= minRating;
 
-  // Sort: rating desc, then availableSlots desc
-  results = results.sort((a, b) => {
-    if (b.rating !== a.rating) return b.rating - a.rating;
-    return b.availableSlots - a.availableSlots;
-  });
+      return queryMatch && careMatch && availabilityMatch && priceMatch && ratingMatch;
+    })
+    .sort((a, b) => b.rating - a.rating || b.availableSlots - a.availableSlots);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10 md:py-14">
-      {/* Page heading */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-          Pflegeeinrichtungen finden
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {results.length} {results.length === 1 ? "Ergebnis" : "Ergebnisse"}
-          {q ? ` fuer "${params.q}"` : ""}
+    <div className="mx-auto w-full max-w-6xl px-6 pb-16 pt-10">
+      <header className="mb-6">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Pflegeheime finden</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Filtern Sie nach Pflegeform, Verfügbarkeit, Preisniveau und Bewertung.
         </p>
-      </div>
+      </header>
 
-      <div className="mt-8 flex flex-col gap-10 lg:flex-row">
-        {/* -- Filter sidebar -- */}
-        <aside className="w-full shrink-0 lg:sticky lg:top-24 lg:h-fit lg:w-64">
-          <form action="/suche" method="GET" className="flex flex-col gap-5">
-            {/* Search input */}
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr] lg:items-start">
+        <aside className="surface p-5 lg:sticky lg:top-24" aria-label="Filterbereich">
+          <form action="/suche" method="get" className="space-y-4">
             <div>
-              <label htmlFor="q" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Suche
+              <label htmlFor="q" className="text-sm font-medium text-slate-700">
+                Stadt oder PLZ
               </label>
-              <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
-                <SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <input
-                  id="q"
-                  type="text"
-                  name="q"
-                  defaultValue={params.q ?? ""}
-                  placeholder="Stadt, PLZ, Name..."
-                  className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                />
-              </div>
+              <input
+                id="q"
+                name="q"
+                defaultValue={q}
+                className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                placeholder="z. B. München"
+              />
             </div>
 
-            {/* Care type */}
             <div>
-              <label htmlFor="care" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <label htmlFor="care" className="text-sm font-medium text-slate-700">
                 Pflegeart
               </label>
               <select
                 id="care"
                 name="care"
-                defaultValue={care}
-                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                defaultValue={care ?? ""}
+                className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
               >
                 <option value="">Alle Pflegearten</option>
-                {(Object.keys(careTypeLabels) as CareType[]).map((key) => (
-                  <option key={key} value={key}>
-                    {careTypeLabels[key]}
+                {Object.entries(careTypeLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Available only */}
-            <label className="flex items-center gap-2.5 text-sm text-foreground">
+            <div className="flex items-center gap-2">
               <input
+                id="onlyAvailable"
                 type="checkbox"
-                name="available"
-                value="1"
-                defaultChecked={availableOnly}
-                className="h-4 w-4 rounded border-border accent-foreground"
+                name="onlyAvailable"
+                defaultChecked={onlyAvailable}
+                className="h-4 w-4 rounded border-slate-300"
               />
-              Nur verfuegbare Plaetze
-            </label>
+              <label htmlFor="onlyAvailable" className="text-sm text-slate-700">
+                Nur freie Plätze
+              </label>
+            </div>
 
-            {/* Max price */}
             <div>
-              <label htmlFor="maxPrice" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {"Max. Preisstufe"}
+              <label htmlFor="maxPrice" className="text-sm font-medium text-slate-700">
+                Maximale Preisstufe
               </label>
               <select
                 id="maxPrice"
                 name="maxPrice"
                 defaultValue={String(maxPrice)}
-                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-1.5 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
               >
-                <option value="1">{"€"}</option>
-                <option value="2">{"€€"}</option>
-                <option value="3">{"€€€ (alle)"}</option>
+                <option value="1">€</option>
+                <option value="2">€€</option>
+                <option value="3">€€€</option>
               </select>
             </div>
 
-            {/* Min rating */}
             <div>
-              <label htmlFor="minRating" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Mindestbewertung
+              <label htmlFor="minRating" className="text-sm font-medium text-slate-700">
+                Mindestbewertung: {minRating.toFixed(1)}
               </label>
-              <select
+              <input
                 id="minRating"
+                type="range"
+                min="0"
+                max="5"
+                step="0.1"
                 name="minRating"
                 defaultValue={String(minRating)}
-                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="0">Alle</option>
-                <option value="3">{"ab 3.0 \u2605"}</option>
-                <option value="4">{"ab 4.0 \u2605"}</option>
-                <option value="4.5">{"ab 4.5 \u2605"}</option>
-              </select>
+                className="mt-2 w-full accent-slate-900"
+              />
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
-              className="w-full rounded-xl bg-foreground py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-80"
+              className="h-10 w-full rounded-xl bg-slate-900 text-sm font-medium text-white transition hover:bg-slate-800"
             >
               Filter anwenden
             </button>
           </form>
         </aside>
 
-        {/* -- Results -- */}
-        <div className="flex-1">
+        <section aria-live="polite">
+          <div className="mb-4 text-sm text-slate-600">{results.length} Ergebnis(se)</div>
           {results.length > 0 ? (
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="space-y-4">
               {results.map((home) => (
                 <NursingHomeCard key={home.id} home={home} />
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-3 py-20 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-                <SearchIcon className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-lg font-semibold text-foreground">Keine Ergebnisse</p>
-              <p className="max-w-xs text-sm text-muted-foreground">
-                Versuchen Sie andere Suchbegriffe oder erweitern Sie Ihre Filter.
+            <div className="surface flex min-h-72 flex-col items-center justify-center p-8 text-center">
+              <h2 className="text-xl font-semibold text-slate-900">Keine passenden Einrichtungen gefunden</h2>
+              <p className="mt-2 max-w-md text-sm text-slate-600">
+                Erweitern Sie die Suche, indem Sie den Ort allgemeiner wählen oder Filter lockern.
               </p>
-              <a
-                href="/suche"
-                className="mt-2 text-sm font-medium text-foreground underline underline-offset-4 transition-opacity hover:opacity-70"
-              >
-                Filter zuruecksetzen
-              </a>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );
